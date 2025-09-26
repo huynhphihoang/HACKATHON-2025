@@ -11,6 +11,9 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "video_id": {
+      "type": "uid"
+    },
     "video_name": {
       "type": "string"
     },
