@@ -1,20 +1,51 @@
 // import type { Core } from '@strapi/strapi';
 
 export default {
-  /**
-   * An asynchronous register function that runs before
-   * your application is initialized.
-   *
-   * This gives you an opportunity to extend code.
-   */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  register({ strapi }) {
+    strapi.server.use(async (ctx, next) => {
+      if (ctx.path === '/') {
+        ctx.status = 200;
+        ctx.body = { status: 'ok' };
+        return;
+      } else {
+        console.log('An error occurred while processing the request to:', ctx.path);
+      }
+      await next();
+    });
+  },
+  
+  bootstrap({ strapi }) {
+    const logInfo = (...args: unknown[]) =>
+      (strapi?.log?.info ? strapi.log.info.bind(strapi.log) : console.log)(...args);
+    const logError = (...args: unknown[]) =>
+      (strapi?.log?.error ? strapi.log.error.bind(strapi.log) : console.error)(...args);
 
-  /**
-   * An asynchronous bootstrap function that runs before
-   * your application gets started.
-   *
-   * This gives you an opportunity to set up your data model,
-   * run jobs, or perform some special logic.
-   */
-  bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {},
+    const handleSignal = (signal: string) => {
+      logInfo(`Strapi shutdown initiated (signal: ${signal}).`);
+    };
+
+    process.on('SIGINT', () => handleSignal('SIGINT'));
+    process.on('SIGTERM', () => handleSignal('SIGTERM'));
+    // Nodemon/pm2 reload signal (optional)
+    process.on('SIGUSR2', () => handleSignal('SIGUSR2'));
+
+    process.on('uncaughtException', (error: unknown) => {
+      logError('Uncaught exception - Strapi will shut down:', error);
+      // Allow Strapi/PM to perform graceful shutdown by setting exitCode
+      process.exitCode = 1;
+    });
+
+    process.on('unhandledRejection', (reason: unknown) => {
+      logError('Unhandled promise rejection - Strapi will shut down:', reason);
+      process.exitCode = 1;
+    });
+
+    // Log when HTTP server closes
+    const httpServer = (strapi as any)?.server?.httpServer;
+    if (httpServer && typeof httpServer.on === 'function') {
+      httpServer.on('close', () => {
+        logInfo('HTTP server closed. Strapi has stopped accepting connections.');
+      });
+    }
+  },
 };
