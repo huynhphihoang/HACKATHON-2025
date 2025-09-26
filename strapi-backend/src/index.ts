@@ -7,6 +7,20 @@ export default {
         ctx.status = 200;
         ctx.body = { status: 'ok' };
         return;
+      } else if (ctx.path === '/collection1') {
+        try {
+          console.log('Collection1 request received');
+          const data = await strapi.entityService.findMany('api::video.video', {
+            populate: '*',
+          });
+          ctx.status = 200;
+          ctx.body = { data };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          ctx.status = 500;
+          ctx.body = { error: message };
+        }
+        return;
       } else {
         console.log('An error occurred while processing the request to:', ctx.path);
       }

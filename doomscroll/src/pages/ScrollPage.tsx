@@ -10,40 +10,73 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [entry, setEntry] = useState<any | null>(null);
   
   const topVideoRef = useRef<HTMLVideoElement>(null);
   const bottomVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const getFeedbackMessage = (answerId: string) => {
-    switch (answerId) {
-      case 'c':
-        return {
-          isCorrect: true,
-          message: ' Excellent! You got it right! The while loop with proper increment will print the statement 10 times.'
-        };
-      case 'a':
-        return {
-          isCorrect: false,
-          message: ' Not quite! This loop only runs 9 times (i goes from 1 to 9). Try again!'
-        };
-      case 'b':
-        return {
-          isCorrect: false,
-          message: ' This would run forever! That\'s not what we want. Think about the loop condition.'
-        };
-      default:
-        return {
-          isCorrect: false,
-          message: 'Try selecting an answer!'
-        };
+  const STRAPI_URL = (import.meta as any).env?.VITE_STRAPI_URL || 'http://localhost:1337';
+  const withBaseUrl = (url?: string | null) => {
+    if (!url) return undefined;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${STRAPI_URL}${url}`;
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${STRAPI_URL}/api/videos?populate=*`);
+        if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
+        const json = await res.json();
+        const first = json?.data?.[0] ?? null;
+        setEntry(first);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getFeedbackMessage = (answerId: string, isCorrect: boolean | undefined) => {
+    if (answerId && isCorrect === true) {
+      return { isCorrect: true, message: ' Excellent! You got it right!' };
     }
+    if (answerId && isCorrect === false) {
+      return { isCorrect: false, message: ' Not quite! Try again!' };
+    }
+    return { isCorrect: false, message: 'Try selecting an answer!' };
   };
 
   const handleAnswerSelect = (answerId: string) => {
     setSelectedAnswer(answerId);
     setShowFeedback(true);
   };
+
+  const primarySrc = withBaseUrl(entry?.attributes?.videoPrimary?.url) || '/assets/video1.mp4';
+  const secondarySrc = withBaseUrl(entry?.attributes?.videoSecondary?.url) || '/assets/minecraft.mp4';
+  const quizQuestion = entry?.attributes?.quizQuestion || 'Which of these code prints the given statement 10 times in JavaScript?';
+  const quizOptionsRaw = entry?.attributes?.quizOptions || [];
+  const quizCorrectOption = entry?.attributes?.quizCorrectOption;
+
+  const letters = ['a','b','c','d','e','f','g','h'];
+  const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
+  const anyMarked = rawArray.some((o: any) => typeof o === 'object' && o && typeof o.isCorrect === 'boolean');
+
+  const normalizedOptions: { id: string; code: string; isCorrect: boolean }[] = rawArray.map((opt: any, idx: number) => {
+    const labelRaw = typeof opt === 'object' && opt ? (opt.label ?? opt.id) : undefined;
+    const id = (labelRaw ? String(labelRaw) : letters[idx] || String(idx + 1)).toLowerCase();
+    const code = typeof opt === 'string' ? opt : (opt?.code ?? opt?.text ?? JSON.stringify(opt));
+    const isCorrectFromOption = (typeof opt === 'object' && opt && typeof opt.isCorrect === 'boolean') ? opt.isCorrect : undefined;
+    const isCorrectFromNumber = !anyMarked && (quizCorrectOption != null) && (idx + 1 === Number(quizCorrectOption) || Number(opt?.id) === Number(quizCorrectOption));
+    return { id, code: String(code), isCorrect: isCorrectFromOption ?? Boolean(isCorrectFromNumber) };
+  });
 
   const screens = [
     {
@@ -64,7 +97,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
                       onLoadedData={() => console.log('Top video loaded')}
                       onError={(e) => console.error('Top video error:', e)}
                     >
-                      <source src="/assets/video1.mp4" type="video/mp4" />
+                      <source src={primarySrc} type="video/mp4" />
                       <div className="text-white text-center p-4">
                         <p>For Loop Video</p>
                         <p className="text-sm text-gray-400">Video not available</p>
@@ -85,7 +118,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
               onLoadedData={() => console.log('Bottom video loaded')}
               onError={(e) => console.error('Bottom video error:', e)}
             >
-              <source src="/assets/minecraft.mp4" type="video/mp4" />
+              <source src={secondarySrc} type="video/mp4" />
               <div className="text-white text-center p-4">
                 <p>Minecraft Video</p>
                 <p className="text-sm text-gray-400">Video not available</p>
@@ -101,27 +134,15 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       content: (
         <div className="h-full flex flex-col justify-center items-center p-8 bg-white">
           <div className="max-w-2xl w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Based on the video you saw earlier, what should be the solution of this question?</h2>
-            <p className="text-lg text-gray-600 mb-8">Which of these code prints the given statement 10 times in JavaScript?</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Based on the video you saw earlier, answer this question:</h2>
+            <p className="text-lg text-gray-600 mb-8">{quizQuestion}</p>
             
             <div className="space-y-4">
-              {[
-                {
-                  id: 'a',
-                  code: 'for (let i = 1; i < 10; i++) {\n  console.log("This is a for loop")\n}',
-                  isCorrect: false
-                },
-                {
-                  id: 'b', 
-                  code: 'while (true) {\n  console.log("This is a for loop")\n}',
-                  isCorrect: false
-                },
-                {
-                  id: 'c',
-                  code: 'while (i != 10){\n  console.log("This is a for loop")\n  i++\n}',
-                  isCorrect: true
-                }
-              ].map((option) => (
+              {(normalizedOptions.length ? normalizedOptions : [
+                { id: 'a', code: 'Option A', isCorrect: false },
+                { id: 'b', code: 'Option B', isCorrect: false },
+                { id: 'c', code: 'Option C', isCorrect: true },
+              ]).map((option) => (
                 <button
                   key={option.id}
                   onClick={() => handleAnswerSelect(option.id)}
@@ -145,11 +166,16 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
 
             {showFeedback && selectedAnswer && (
               <div className={`mt-6 p-4 rounded-lg ${
-                getFeedbackMessage(selectedAnswer).isCorrect 
+                (normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect ? true : false)
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
-                <p className="font-semibold">{getFeedbackMessage(selectedAnswer).message}</p>
+                <p className="font-semibold">{
+                  getFeedbackMessage(
+                    selectedAnswer,
+                    normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect
+                  ).message
+                }</p>
               </div>
             )}
           </div>
