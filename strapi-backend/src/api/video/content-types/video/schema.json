@@ -11,24 +11,26 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "video_id": {
-      "type": "uid"
-    },
-    "video_name": {
+    "title": {
       "type": "string"
     },
-    "video_description": {
+    "description": {
       "type": "text"
     },
-    "source_video": {
+    "sourceVideo": {
       "type": "media",
-      "multiple": true,
+      "multiple": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
       ]
+    },
+    "quizzes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::quiz.quiz"
     }
   }
 }
