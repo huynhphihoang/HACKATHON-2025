@@ -10,6 +10,19 @@ export default {
       } else if (ctx.path === '/collection1') {
         try {
           console.log('Collection1 request received');
+          
+          // Set CORS headers
+          ctx.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+          ctx.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS');
+          ctx.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+          ctx.set('Access-Control-Allow-Credentials', 'true');
+          
+          // Handle preflight requests
+          if (ctx.method === 'OPTIONS') {
+            ctx.status = 200;
+            return;
+          }
+          
           const data = await strapi.entityService.findMany('api::video.video', {
             populate: '*',
           });

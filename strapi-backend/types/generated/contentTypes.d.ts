@@ -441,6 +441,33 @@ export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    category: Schema.Attribute.Enumeration<
+      [
+        'Data Types (int, float, bool, string)',
+        'Operators (arithmetic, comparison, logical)',
+        'Conditionals (if, else, switch)',
+        'Loops (for, while, do-while)',
+        'Functions (definition, parameters, return)',
+        'Scope (local vs global variables)',
+        'Type Casting (implicit vs explicit)',
+        'Basic I/O (print, input, cin/cout, etc.)',
+        'Arrays vs Linked Lists (advantages/disadvantages)',
+        'Stacks & Queues (LIFO vs FIFO concepts)',
+        'Hash Tables / Dictionaries / Maps',
+        'Strings & String Manipulation',
+        'Recursion (base case, call stack visualization)',
+        'File Handling (read/write files)',
+        'Exception Handling (try/catch/finally)',
+        'Time Complexity (Big-O basics: O(1), O(n), O(log n))',
+        'Memory Management (stack vs heap) ',
+        'Abstract Data Types (sets, graphs, trees)',
+        'Binary Trees vs Binary Search Trees',
+        'Sorting Algorithms (bubble, quicksort, Mergesort)',
+        'Searching Algorithms (linear, binary, BFS, DFS)',
+        'Pointers & References (C/C++ focus)',
+        'Object-Oriented Concepts (inheritance, polymorphism, encapsulation, abstraction)',
+      ]
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -448,7 +475,6 @@ export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::video.video'> &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    quizCorrectOption: Schema.Attribute.Integer;
     quizOptions: Schema.Attribute.JSON;
     quizQuestion: Schema.Attribute.Text;
     updatedAt: Schema.Attribute.DateTime;

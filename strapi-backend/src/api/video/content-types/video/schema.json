@@ -43,8 +43,33 @@
     "quizOptions": {
       "type": "json"
     },
-    "quizCorrectOption": {
-      "type": "integer"
+    "category": {
+      "type": "enumeration",
+      "enum": [
+        "Data Types (int, float, bool, string)",
+        "Operators (arithmetic, comparison, logical)",
+        "Conditionals (if, else, switch)",
+        "Loops (for, while, do-while)",
+        "Functions (definition, parameters, return)",
+        "Scope (local vs global variables)",
+        "Type Casting (implicit vs explicit)",
+        "Basic I/O (print, input, cin/cout, etc.)",
+        "Arrays vs Linked Lists (advantages/disadvantages)",
+        "Stacks & Queues (LIFO vs FIFO concepts)",
+        "Hash Tables / Dictionaries / Maps",
+        "Strings & String Manipulation",
+        "Recursion (base case, call stack visualization)",
+        "File Handling (read/write files)",
+        "Exception Handling (try/catch/finally)",
+        "Time Complexity (Big-O basics: O(1), O(n), O(log n))",
+        "Memory Management (stack vs heap) ",
+        "Abstract Data Types (sets, graphs, trees)",
+        "Binary Trees vs Binary Search Trees",
+        "Sorting Algorithms (bubble, quicksort, Mergesort)",
+        "Searching Algorithms (linear, binary, BFS, DFS)",
+        "Pointers & References (C/C++ focus)",
+        "Object-Oriented Concepts (inheritance, polymorphism, encapsulation, abstraction)"
+      ]
     }
   }
 }
