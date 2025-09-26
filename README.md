@@ -1,4 +1,4 @@
-# HACKATHON-2025
+# HACKATHON-2025 (DoomCode)
 GitHub Repository for HACKATHON-2025, organized by the CS Club and UPC.
 
 #Overview
