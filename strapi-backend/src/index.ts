@@ -7,6 +7,17 @@ export default {
         ctx.status = 200;
         ctx.body = { status: 'ok' };
         return;
+      } else if (ctx.path === '/api/video_quiz_collection') {
+        try {
+          console.log('Received request for /api/video_quiz_collection');
+          ctx.status = 200;
+          ctx.body = { message: 'Collection request received successfully.' };
+        } catch (error) {
+          console.log('Error processing /api/video_quiz_collection:', error);
+          ctx.status = 500;
+          ctx.body = { error: 'Internal server error.' };
+        }
+        return;
       } else {
         console.log('An error occurred while processing the request to:', ctx.path);
       }

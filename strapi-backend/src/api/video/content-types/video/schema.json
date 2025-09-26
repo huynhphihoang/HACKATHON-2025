@@ -4,7 +4,7 @@
   "info": {
     "singularName": "video",
     "pluralName": "videos",
-    "displayName": "video"
+    "displayName": "video_quiz_collection"
   },
   "options": {
     "draftAndPublish": true
@@ -17,7 +17,7 @@
     "description": {
       "type": "text"
     },
-    "sourceVideo": {
+    "primaryVideo": {
       "type": "media",
       "multiple": false,
       "allowedTypes": [
@@ -27,10 +27,21 @@
         "audios"
       ]
     },
-    "quizzes": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::quiz.quiz"
+    "secondaryVideo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "question": {
+      "type": "json"
+    },
+    "correct_Answer_Index": {
+      "type": "integer"
     }
   }
 }
