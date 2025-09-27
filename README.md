@@ -18,7 +18,7 @@ DoomScroll revolutionizes programming education by combining the addictive scrol
 - ** Dual Video Layout**: Educational tutorials paired with engaging content
 - ** Interactive Quizzes**: Built-in assessments with immediate feedback
 - ** Hierarchical Learning**: Organized by difficulty levels and topics
-- ** Gamified Experience**: Progress tracking and achievement system
+
 
 ## Architecture
 
@@ -81,11 +81,23 @@ npm run dev
 # The frontend will be available at http://localhost:5173
 ```
 
-## 🔧 Environment Configuration
 
-### Frontend Environment Variables
+### 4. Frontend Environment Variables
 
 Change .env.example to .env
+
+# Web-App Walkthrough Screenshots
+## Explore Page
+<img width="3250" height="1794" alt="image" src="https://github.com/user-attachments/assets/e1d08fe5-0cad-414d-acca-c8c1369e995a" />
+
+## Main Video Page
+<img width="2326" height="1800" alt="image" src="https://github.com/user-attachments/assets/3a5808be-bfd5-4c6c-a178-1bac50a94f53" />
+
+## Question Page
+<img width="1928" height="1792" alt="image" src="https://github.com/user-attachments/assets/7f7fd12d-6f0e-42c4-a83d-74a034c99bf1" />
+
+
+
 
 
 
