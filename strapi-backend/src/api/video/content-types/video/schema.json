@@ -42,9 +42,6 @@
     },
     "quizOptions": {
       "type": "json"
-    },
-    "quizCorrectOption": {
-      "type": "integer"
     }
   }
 }
