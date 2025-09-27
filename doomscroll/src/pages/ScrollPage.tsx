@@ -12,10 +12,11 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [entry, setEntry] = useState<any | null>(null);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [currentCollectionIndex, setCurrentCollectionIndex] = useState(0);
   
-  const topVideoRef = useRef<HTMLVideoElement>(null);
-  const bottomVideoRef = useRef<HTMLVideoElement>(null);
+  const topVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const bottomVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const STRAPI_URL = (import.meta as any).env?.VITE_STRAPI_URL || 'http://localhost:1337';
@@ -33,8 +34,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
         const res = await fetch(`${STRAPI_URL}/collection`);
         if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
         const json = await res.json();
-        const first = json?.data?.[0] ?? null;
-        setEntry(first);
+        const allCollections = json?.data || [];
+        setCollections(allCollections);
       } catch (e: any) {
         setError(e?.message || 'Failed to load');
       } finally {
@@ -62,12 +63,14 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     setShowFeedback(true);
   };
 
-  const primarySrc = withBaseUrl(entry?.videoPrimary?.url);
-  const secondarySrc = withBaseUrl(entry?.videoSecondary?.url);
-  const quizQuestion = entry?.quizQuestion;
-  const quizOptionsRaw = entry?.quizOptions || [];
-  const videoTitle = entry?.videoTitle || 'For Loop';
-  const videoDescription = entry?.videoDescription || 'forLoops by @CodeMaster_42 (Beginner)';
+  // Get current collection data
+  const currentCollection = collections[currentCollectionIndex] || null;
+  const primarySrc = withBaseUrl(currentCollection?.videoPrimary?.url);
+  const secondarySrc = withBaseUrl(currentCollection?.videoSecondary?.url);
+  const quizQuestion = currentCollection?.quizQuestion;
+  const quizOptionsRaw = currentCollection?.quizOptions || [];
+  const videoTitle = currentCollection?.videoTitle || 'For Loop';
+  const videoDescription = currentCollection?.videoDescription || 'forLoops by @CodeMaster_42 (Beginner)';
 
   const letters = ['a','b','c','d','e','f','g','h'];
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
@@ -82,16 +85,21 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     return { id, code: String(code), isCorrect: isCorrectFromOption ?? false, feedback };
   });
 
-  const screens = [
+  // Generate screens for all collections
+  const screens = collections.flatMap((collection, collectionIdx) => [
     {
-      id: 'visual',
+      id: `visual-${collectionIdx}`,
       title: 'Visual Learning',
+      collectionIndex: collectionIdx,
+      screenType: 'visual',
       content: (
         <div className="h-full flex flex-col p-1 gap-1">
                   {/* Top Video - For Loop Tutorial (60%) */}
                   <div className="bg-black rounded-lg overflow-hidden flex-shrink-0" style={{ height: '60%' }}>
                     <video
-                      ref={topVideoRef}
+                      ref={(el) => {
+                        topVideoRefs.current[collectionIdx] = el;
+                      }}
                       className="w-full h-full object-cover"
                       autoPlay
                       muted={isMuted}
@@ -101,9 +109,9 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
                       onLoadedData={() => console.log('Top video loaded')}
                       onError={(e) => console.error('Top video error:', e)}
                     >
-                      <source src={primarySrc} type="video/mp4" />
+                      <source src={withBaseUrl(collection?.videoPrimary?.url)} type="video/mp4" />
                       <div className="text-white text-center p-4">
-                        <p>{videoTitle} Video</p>
+                        <p>{collection?.videoTitle || 'Video'} Video</p>
                         <p className="text-sm text-gray-400">Video not available</p>
                       </div>
                     </video>
@@ -112,7 +120,9 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
           {/* Bottom Video - Minecraft Gameplay (40%) */}
           <div className="bg-red-500 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ height: '40%' }}>
             <video
-              ref={bottomVideoRef}
+              ref={(el) => {
+                bottomVideoRefs.current[collectionIdx] = el;
+              }}
               className="w-full h-full object-cover"
               muted
               loop
@@ -122,7 +132,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
               onLoadedData={() => console.log('Bottom video loaded')}
               onError={(e) => console.error('Bottom video error:', e)}
             >
-              <source src={secondarySrc} type="video/mp4" />
+              <source src={withBaseUrl(collection?.videoSecondary?.url)} type="video/mp4" />
               <div className="text-white text-center p-4">
                 <p>Secondary Video</p>
                 <p className="text-sm text-gray-400">Video not available</p>
@@ -133,14 +143,16 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       )
     },
     {
-      id: 'quiz',
+      id: `quiz-${collectionIdx}`,
       title: 'Quiz Time',
+      collectionIndex: collectionIdx,
+      screenType: 'quiz',
       content: (
         <div className="h-full flex flex-col justify-center items-center p-8 bg-white">
           <div className="max-w-2xl w-full">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Based on the video you saw earlier, answer this question:</h2>
-            {quizQuestion ? (
-              <p className="text-lg text-gray-600 mb-8">{quizQuestion}</p>
+            {collection?.quizQuestion ? (
+              <p className="text-lg text-gray-600 mb-8">{collection.quizQuestion}</p>
             ) : (
               <div className="text-center text-gray-500 py-8">
                 <p>No quiz question available from the backend.</p>
@@ -149,27 +161,35 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             )}
             
             <div className="space-y-4">
-              {normalizedOptions.length > 0 ? (
-                normalizedOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleAnswerSelect(option.id)}
-                    className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
-                      selectedAnswer === option.id
-                        ? option.isCorrect
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg font-semibold">{option.id.toUpperCase()}.</span>
-                      <pre className="text-sm bg-gray-100 p-2 rounded flex-1 overflow-x-auto">
-                        {option.code}
-                      </pre>
-                    </div>
-                  </button>
-                ))
+              {(collection?.quizOptions || []).length > 0 ? (
+                (collection?.quizOptions || []).map((option: any, idx: number) => {
+                  const labelRaw = typeof option === 'object' && option ? (option.label ?? option.id) : undefined;
+                  const id = (labelRaw ? String(labelRaw) : ['a','b','c','d','e','f','g','h'][idx] || String(idx + 1)).toLowerCase();
+                  const code = typeof option === 'string' ? option : (option?.code ?? option?.text ?? JSON.stringify(option));
+                  const isCorrect = (typeof option === 'object' && option && typeof option.isCorrect === 'boolean') ? option.isCorrect : false;
+                  const feedback = typeof option === 'object' && option ? option.feedback : undefined;
+                  
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => handleAnswerSelect(id)}
+                      className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
+                        selectedAnswer === id
+                          ? isCorrect
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-red-500 bg-red-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg font-semibold">{id.toUpperCase()}.</span>
+                        <pre className="text-sm bg-gray-100 p-2 rounded flex-1 overflow-x-auto">
+                          {code}
+                        </pre>
+                      </div>
+                    </button>
+                  );
+                })
               ) : (
                 <div className="text-center text-gray-500 py-8">
                   <p>No quiz options available from the backend.</p>
@@ -180,15 +200,15 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
 
             {showFeedback && selectedAnswer && (
               <div className={`mt-6 p-4 rounded-lg ${
-                (normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect ? true : false)
+                (collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.isCorrect ? true : false)
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
                 <p className="font-semibold">{
                   getFeedbackMessage(
                     selectedAnswer,
-                    normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect,
-                    normalizedOptions.find(o => o.id === selectedAnswer)?.feedback
+                    collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.isCorrect,
+                    collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.feedback
                   ).message
                 }</p>
               </div>
@@ -197,30 +217,52 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
         </div>
       )
     }
-  ];
+  ]);
+
+  // Update current collection index when screen changes
+  useEffect(() => {
+    if (screens.length > 0 && currentScreen < screens.length) {
+      const currentScreenData = screens[currentScreen];
+      if (currentScreenData && typeof currentScreenData.collectionIndex === 'number') {
+        const newCollectionIndex = currentScreenData.collectionIndex;
+        if (newCollectionIndex !== currentCollectionIndex) {
+          setCurrentCollectionIndex(newCollectionIndex);
+          // Reset quiz state when switching collections
+          setSelectedAnswer(null);
+          setShowFeedback(false);
+        }
+      }
+    }
+  }, [currentScreen, screens, currentCollectionIndex]);
 
   const handlePausePlay = () => {
-    if (topVideoRef.current && bottomVideoRef.current) {
+    const currentTopVideo = topVideoRefs.current[currentCollectionIndex];
+    const currentBottomVideo = bottomVideoRefs.current[currentCollectionIndex];
+    
+    if (currentTopVideo && currentBottomVideo) {
       if (isPaused) {
         // Play both videos
-        topVideoRef.current.play().catch(console.error);
-        bottomVideoRef.current.play().catch(console.error);
+        currentTopVideo.play().catch(console.error);
+        currentBottomVideo.play().catch(console.error);
       } else {
         // Pause both videos
-        topVideoRef.current.pause();
-        bottomVideoRef.current.pause();
+        currentTopVideo.pause();
+        currentBottomVideo.pause();
       }
       setIsPaused(!isPaused);
     }
   };
 
   const handleMuteToggle = () => {
-    if (topVideoRef.current && bottomVideoRef.current) {
+    const currentTopVideo = topVideoRefs.current[currentCollectionIndex];
+    const currentBottomVideo = bottomVideoRefs.current[currentCollectionIndex];
+    
+    if (currentTopVideo && currentBottomVideo) {
       const newMutedState = !isMuted;
-      topVideoRef.current.muted = newMutedState;
-      bottomVideoRef.current.muted = newMutedState;
-      topVideoRef.current.volume = newMutedState ? 0 : 1;
-      bottomVideoRef.current.volume = newMutedState ? 0 : 1;
+      currentTopVideo.muted = newMutedState;
+      currentBottomVideo.muted = newMutedState;
+      currentTopVideo.volume = newMutedState ? 0 : 1;
+      currentBottomVideo.volume = newMutedState ? 0 : 1;
       setIsMuted(newMutedState);
     }
   };
@@ -294,41 +336,52 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     };
   }, [currentScreen, screens.length]);
 
-  // Control both videos together when scrolling between screens
+  // Control videos when scrolling between screens (Instagram-like behavior)
   useEffect(() => {
-    if (topVideoRef.current && bottomVideoRef.current) {
-      if (currentScreen === 0) {
-        // On visual screen, play both videos if not manually paused
-        if (!isPaused) {
-          topVideoRef.current.play().catch(console.error);
-          bottomVideoRef.current.play().catch(console.error);
-        }
-      } else {
-        // On quiz screen, pause both videos
-        topVideoRef.current.pause();
-        bottomVideoRef.current.pause();
+    // Pause ALL videos first
+    topVideoRefs.current.forEach((video) => {
+      if (video) video.pause();
+    });
+    bottomVideoRefs.current.forEach((video) => {
+      if (video) video.pause();
+    });
+
+    // Get current screen data
+    const currentScreenData = screens[currentScreen];
+    if (currentScreenData && currentScreenData.screenType === 'visual') {
+      // Only play videos on visual screens for the current collection
+      const currentTopVideo = topVideoRefs.current[currentCollectionIndex];
+      const currentBottomVideo = bottomVideoRefs.current[currentCollectionIndex];
+      
+      if (currentTopVideo && currentBottomVideo && !isPaused) {
+        currentTopVideo.play().catch(console.error);
+        currentBottomVideo.play().catch(console.error);
       }
     }
-  }, [currentScreen, isPaused]);
+  }, [currentScreen, currentCollectionIndex, isPaused, screens]);
 
   // Ensure videos load and play on component mount
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (topVideoRef.current && bottomVideoRef.current && currentScreen === 0) {
-        // Play both videos on initial load
-        topVideoRef.current.play().catch(console.error);
-        bottomVideoRef.current.play().catch(console.error);
-      }
-      
-      // Ensure bottom video loads
-      if (bottomVideoRef.current) {
-        bottomVideoRef.current.load();
-        console.log('Bottom video load() called');
+      if (collections.length > 0) {
+        // Load all videos
+        topVideoRefs.current.forEach((video, index) => {
+          if (video) {
+            video.load();
+            console.log(`Top video ${index} load() called`);
+          }
+        });
+        bottomVideoRefs.current.forEach((video, index) => {
+          if (video) {
+            video.load();
+            console.log(`Bottom video ${index} load() called`);
+          }
+        });
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [collections]);
 
   if (loading) {
     return (
@@ -352,10 +405,10 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     );
   }
 
-  if (!entry) {
+  if (collections.length === 0) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center">
-        <div className="text-white text-xl mb-4">No data available</div>
+        <div className="text-white text-xl mb-4">No collections available</div>
         <button
           onClick={onBack}
           className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm"
