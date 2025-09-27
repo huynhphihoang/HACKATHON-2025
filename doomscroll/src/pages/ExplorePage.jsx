@@ -16,6 +16,7 @@ const ExplorePage = () => {
     const fetchData = async () => {
       try {
         const levels = await getLevels();
+        
          // Transform backend data to match existing format
          const transformedCategories = levels.map(level => ({
            level: level.level_title.charAt(0).toUpperCase() + level.level_title.slice(1).toLowerCase(),
@@ -23,6 +24,7 @@ const ExplorePage = () => {
              ? level.types.map(type => type.type_title)
              : [] // Empty array for levels without populated types
          }));
+        
         setCategories(transformedCategories);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -45,10 +47,21 @@ const ExplorePage = () => {
     if (topic) {
       console.log(`Selected level: ${level}, topic: ${topic}, language: ${selectedLanguage}`);
 
-      // Navigate to any topic that has data
-      setShowScrollPage(true);
-      setSelectedLevel(level);
-      setSelectedType(topic);
+      // Check if this level/topic has data by looking at the categories
+      const levelData = categories.find(cat => cat.level === level);
+      const hasData = levelData && levelData.topics.includes(topic);
+
+      if (hasData) {
+        // Navigate to ScrollPage only if data exists
+        console.log(`ExplorePage: Navigating to ScrollPage with level: ${level}, topic: ${topic}`);
+        setShowScrollPage(true);
+        setSelectedLevel(level);
+        setSelectedType(topic);
+      } else {
+        // Show message for topics without data
+        console.log(`ExplorePage: No data found for ${level}/${topic}`);
+        alert(`${topic} content is not available yet. Please check back later!`);
+      }
     } else {
       console.log(`Selected level: ${level} with language: ${selectedLanguage}`);
     }

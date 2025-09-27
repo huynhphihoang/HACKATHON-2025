@@ -3,9 +3,12 @@ import { getCollections, getAllCollections } from '../services/api';
 
 interface ScrollPageProps {
   onBack: () => void;
+  level?: string;
+  type?: string;
 }
 
-const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
+const ScrollPage: React.FC<ScrollPageProps> = ({ onBack, level, type }) => {
+  console.log(`ScrollPage: Received props - level: ${level}, type: ${type}`);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -32,8 +35,20 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       try {
         setLoading(true);
         setError(null);
-        // Replace hardcoded fetch with API call
-        const allCollections = await getAllCollections();
+
+        let allCollections = [];
+
+        if (level && type) {
+          // Fetch collections for specific level and type
+          console.log(`ScrollPage: Fetching collections for level: ${level}, type: ${type}`);
+          allCollections = await getCollections(level, type);
+          console.log(`ScrollPage: Found ${allCollections.length} collections for ${level}/${type}`);
+        } else {
+          // Fallback to all collections if no specific level/type
+          console.log('ScrollPage: No level/type specified, fetching all collections');
+          allCollections = await getAllCollections();
+        }
+
         setCollections(allCollections);
       } catch (e: any) {
         setError(e?.message || 'Failed to load');
@@ -42,7 +57,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [level, type]);
 
   const getFeedbackMessage = (answerId: string, isCorrect: boolean | undefined, feedback?: string) => {
     if (answerId && feedback) {
@@ -68,8 +83,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
   const secondarySrc = withBaseUrl(currentCollection?.videoSecondary?.url);
   const quizQuestion = currentCollection?.quizQuestion;
   const quizOptionsRaw = currentCollection?.quizOptions || [];
-  const videoTitle = currentCollection?.videoTitle || 'For Loop';
-  const videoDescription = currentCollection?.videoDescription || 'forLoops by @CodeMaster_42 (Beginner)';
+  const videoTitle = currentCollection?.videoTitle || 'Learning Content';
+  const videoDescription = currentCollection?.videoDescription || `${level || 'Learning'} - ${type || 'Content'}`;
 
   const letters = ['a','b','c','d','e','f','g','h'];
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
@@ -571,7 +586,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             {/* Bottom Text - Below Card */}
             <div className="mt-6 flex items-center justify-center space-x-4">
               <div className="text-white text-lg font-semibold">{videoTitle}</div>
-              <span className="text-white text-sm bg-green-600 px-3 py-1 rounded-full">Beginner</span>
+              <span className="text-white text-sm bg-green-600 px-3 py-1 rounded-full">{level || 'Learning'}</span>
               <span className="text-white text-sm">{videoDescription}</span>
             </div>
           </div>
