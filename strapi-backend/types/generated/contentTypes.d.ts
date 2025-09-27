@@ -433,7 +433,7 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
   collectionName: 'videos';
   info: {
-    displayName: 'collection1';
+    displayName: 'collection';
     pluralName: 'videos';
     singularName: 'video';
   };
@@ -448,7 +448,6 @@ export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::video.video'> &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    quizCorrectOption: Schema.Attribute.Integer;
     quizOptions: Schema.Attribute.JSON;
     quizQuestion: Schema.Attribute.Text;
     updatedAt: Schema.Attribute.DateTime;

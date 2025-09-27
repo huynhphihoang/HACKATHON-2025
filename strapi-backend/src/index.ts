@@ -2,14 +2,32 @@
 
 export default {
   register({ strapi }) {
+    // Global CORS middleware
+    strapi.server.use(async (ctx, next) => {
+      // Set CORS headers for all requests
+      ctx.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+      ctx.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      ctx.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      ctx.set('Access-Control-Allow-Credentials', 'true');
+
+      // Handle preflight OPTIONS requests
+      if (ctx.method === 'OPTIONS') {
+        ctx.status = 200;
+        return;
+      }
+
+      await next();
+    });
+
+    // Custom routes
     strapi.server.use(async (ctx, next) => {
       if (ctx.path === '/') {
         ctx.status = 200;
         ctx.body = { status: 'ok' };
         return;
-      } else if (ctx.path === '/collection1') {
+      } else if (ctx.path === '/collection') {
         try {
-          console.log('Collection1 request received');
+          console.log('Collection request received');
           const data = await strapi.entityService.findMany('api::video.video', {
             populate: '*',
           });

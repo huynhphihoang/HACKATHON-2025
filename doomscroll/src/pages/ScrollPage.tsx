@@ -30,7 +30,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${STRAPI_URL}/api/videos?populate=*`);
+        const res = await fetch(`${STRAPI_URL}/collection`);
         if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
         const json = await res.json();
         const first = json?.data?.[0] ?? null;
@@ -59,11 +59,12 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     setShowFeedback(true);
   };
 
-  const primarySrc = withBaseUrl(entry?.attributes?.videoPrimary?.url) || '/assets/video1.mp4';
-  const secondarySrc = withBaseUrl(entry?.attributes?.videoSecondary?.url) || '/assets/minecraft.mp4';
-  const quizQuestion = entry?.attributes?.quizQuestion || 'Which of these code prints the given statement 10 times in JavaScript?';
-  const quizOptionsRaw = entry?.attributes?.quizOptions || [];
-  const quizCorrectOption = entry?.attributes?.quizCorrectOption;
+  const primarySrc = withBaseUrl(entry?.videoPrimary?.url);
+  const secondarySrc = withBaseUrl(entry?.videoSecondary?.url);
+  const quizQuestion = entry?.quizQuestion;
+  const quizOptionsRaw = entry?.quizOptions || [];
+  const videoTitle = entry?.videoTitle || 'For Loop';
+  const videoDescription = entry?.videoDescription || 'forLoops by @CodeMaster_42 (Beginner)';
 
   const letters = ['a','b','c','d','e','f','g','h'];
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
@@ -74,8 +75,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     const id = (labelRaw ? String(labelRaw) : letters[idx] || String(idx + 1)).toLowerCase();
     const code = typeof opt === 'string' ? opt : (opt?.code ?? opt?.text ?? JSON.stringify(opt));
     const isCorrectFromOption = (typeof opt === 'object' && opt && typeof opt.isCorrect === 'boolean') ? opt.isCorrect : undefined;
-    const isCorrectFromNumber = !anyMarked && (quizCorrectOption != null) && (idx + 1 === Number(quizCorrectOption) || Number(opt?.id) === Number(quizCorrectOption));
-    return { id, code: String(code), isCorrect: isCorrectFromOption ?? Boolean(isCorrectFromNumber) };
+    return { id, code: String(code), isCorrect: isCorrectFromOption ?? false };
   });
 
   const screens = [
@@ -99,7 +99,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
                     >
                       <source src={primarySrc} type="video/mp4" />
                       <div className="text-white text-center p-4">
-                        <p>For Loop Video</p>
+                        <p>{videoTitle} Video</p>
                         <p className="text-sm text-gray-400">Video not available</p>
                       </div>
                     </video>
@@ -120,7 +120,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             >
               <source src={secondarySrc} type="video/mp4" />
               <div className="text-white text-center p-4">
-                <p>Minecraft Video</p>
+                <p>Secondary Video</p>
                 <p className="text-sm text-gray-400">Video not available</p>
               </div>
             </video>
@@ -135,33 +135,43 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
         <div className="h-full flex flex-col justify-center items-center p-8 bg-white">
           <div className="max-w-2xl w-full">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Based on the video you saw earlier, answer this question:</h2>
-            <p className="text-lg text-gray-600 mb-8">{quizQuestion}</p>
+            {quizQuestion ? (
+              <p className="text-lg text-gray-600 mb-8">{quizQuestion}</p>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No quiz question available from the backend.</p>
+                <p className="text-sm mt-2">Please check your Strapi configuration.</p>
+              </div>
+            )}
             
             <div className="space-y-4">
-              {(normalizedOptions.length ? normalizedOptions : [
-                { id: 'a', code: 'Option A', isCorrect: false },
-                { id: 'b', code: 'Option B', isCorrect: false },
-                { id: 'c', code: 'Option C', isCorrect: true },
-              ]).map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswerSelect(option.id)}
-                  className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
-                    selectedAnswer === option.id
-                      ? option.isCorrect
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-red-500 bg-red-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-lg font-semibold">{option.id.toUpperCase()}.</span>
-                    <pre className="text-sm bg-gray-100 p-2 rounded flex-1 overflow-x-auto">
-                      {option.code}
-                    </pre>
-                  </div>
-                </button>
-              ))}
+              {normalizedOptions.length > 0 ? (
+                normalizedOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleAnswerSelect(option.id)}
+                    className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
+                      selectedAnswer === option.id
+                        ? option.isCorrect
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-red-500 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg font-semibold">{option.id.toUpperCase()}.</span>
+                      <pre className="text-sm bg-gray-100 p-2 rounded flex-1 overflow-x-auto">
+                        {option.code}
+                      </pre>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <p>No quiz options available from the backend.</p>
+                  <p className="text-sm mt-2">Please check your Strapi configuration.</p>
+                </div>
+              )}
             </div>
 
             {showFeedback && selectedAnswer && (
@@ -315,6 +325,42 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     return () => clearTimeout(timer);
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <div className="text-white text-xl mb-4">Error: {error}</div>
+        <button
+          onClick={onBack}
+          className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm"
+        >
+          ← Back to Explore
+        </button>
+      </div>
+    );
+  }
+
+  if (!entry) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <div className="text-white text-xl mb-4">No data available</div>
+        <button
+          onClick={onBack}
+          className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm"
+        >
+          ← Back to Explore
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Back Button */}
@@ -445,9 +491,9 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             
             {/* Bottom Text - Below Card */}
             <div className="mt-6 flex items-center justify-center space-x-4">
-              <div className="text-white text-lg font-semibold">For Loop</div>
+              <div className="text-white text-lg font-semibold">{videoTitle}</div>
               <span className="text-white text-sm bg-green-600 px-3 py-1 rounded-full">Beginner</span>
-              <span className="text-white text-sm">by @CodeMaster_42</span>
+              <span className="text-white text-sm">{videoDescription}</span>
             </div>
           </div>
           ))}

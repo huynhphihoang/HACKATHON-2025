@@ -4,7 +4,7 @@
   "info": {
     "singularName": "video",
     "pluralName": "videos",
-    "displayName": "collection1"
+    "displayName": "collection"
   },
   "options": {
     "draftAndPublish": true
@@ -42,9 +42,6 @@
     },
     "quizOptions": {
       "type": "json"
-    },
-    "quizCorrectOption": {
-      "type": "integer"
     }
   }
 }
