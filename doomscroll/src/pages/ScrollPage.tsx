@@ -30,17 +30,12 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       try {
         setLoading(true);
         setError(null);
-        console.log('Fetching from:', `${STRAPI_URL}/collection1`);
-        const res = await fetch(`${STRAPI_URL}/collection1`);
-        console.log('Response status:', res.status);
+        const res = await fetch(`${STRAPI_URL}/api/videos?populate=*`);
         if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
         const json = await res.json();
-        console.log('API Response:', json);
         const first = json?.data?.[0] ?? null;
-        console.log('First entry:', first);
         setEntry(first);
       } catch (e: any) {
-        console.error('API Error:', e);
         setError(e?.message || 'Failed to load');
       } finally {
         setLoading(false);
@@ -64,10 +59,11 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     setShowFeedback(true);
   };
 
-  const primarySrc = withBaseUrl(entry?.videoPrimary?.url);
-  const secondarySrc = withBaseUrl(entry?.videoSecondary?.url);
-  const quizQuestion = entry?.quizQuestion;
-  const quizOptionsRaw = entry?.quizOptions;
+  const primarySrc = withBaseUrl(entry?.attributes?.videoPrimary?.url) || '/assets/video1.mp4';
+  const secondarySrc = withBaseUrl(entry?.attributes?.videoSecondary?.url) || '/assets/minecraft.mp4';
+  const quizQuestion = entry?.attributes?.quizQuestion || 'Which of these code prints the given statement 10 times in JavaScript?';
+  const quizOptionsRaw = entry?.attributes?.quizOptions || [];
+  const quizCorrectOption = entry?.attributes?.quizCorrectOption;
 
   const letters = ['a','b','c','d','e','f','g','h'];
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
@@ -78,7 +74,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     const id = (labelRaw ? String(labelRaw) : letters[idx] || String(idx + 1)).toLowerCase();
     const code = typeof opt === 'string' ? opt : (opt?.code ?? opt?.text ?? JSON.stringify(opt));
     const isCorrectFromOption = (typeof opt === 'object' && opt && typeof opt.isCorrect === 'boolean') ? opt.isCorrect : undefined;
-    return { id, code: String(code), isCorrect: isCorrectFromOption ?? Boolean(isCorrectFromOption) };
+    const isCorrectFromNumber = !anyMarked && (quizCorrectOption != null) && (idx + 1 === Number(quizCorrectOption) || Number(opt?.id) === Number(quizCorrectOption));
+    return { id, code: String(code), isCorrect: isCorrectFromOption ?? Boolean(isCorrectFromNumber) };
   });
 
   const screens = [
@@ -142,23 +139,9 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             
             <div className="space-y-4">
               {(normalizedOptions.length ? normalizedOptions : [
-                // Options from the quizOptionsRaw
-                // Work in progress
-                {
-                  id: 'a',
-                  code: 'Option A',
-                  isCorrect: false
-                },
-                {
-                  id: 'b',
-                  code: 'Option B',
-                  isCorrect: false
-                },
-                {
-                  id: 'c',
-                  code: 'Option C',
-                  isCorrect: true
-                }
+                { id: 'a', code: 'Option A', isCorrect: false },
+                { id: 'b', code: 'Option B', isCorrect: false },
+                { id: 'c', code: 'Option C', isCorrect: true },
               ]).map((option) => (
                 <button
                   key={option.id}
