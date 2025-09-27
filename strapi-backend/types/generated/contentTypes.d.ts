@@ -522,7 +522,7 @@ export interface ApiTypeType extends Struct.CollectionTypeSchema {
 export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
   collectionName: 'videos';
   info: {
-    displayName: 'collection1';
+    displayName: 'collection';
     pluralName: 'videos';
     singularName: 'video';
   };
