@@ -98,6 +98,6 @@ Change .env.example to .env
 
 
 
-# Third Party Reaources: Strappi YT conetnt tiktok content Cursor
+# Third Party Reaources: Strapi, YT Content, Tiktok Content, Cursor
 
 
