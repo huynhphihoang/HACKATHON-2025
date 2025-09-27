@@ -44,7 +44,10 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
     fetchData();
   }, []);
 
-  const getFeedbackMessage = (answerId: string, isCorrect: boolean | undefined) => {
+  const getFeedbackMessage = (answerId: string, isCorrect: boolean | undefined, feedback?: string) => {
+    if (answerId && feedback) {
+      return { isCorrect: isCorrect || false, message: feedback };
+    }
     if (answerId && isCorrect === true) {
       return { isCorrect: true, message: ' Excellent! You got it right!' };
     }
@@ -70,12 +73,13 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
   const anyMarked = rawArray.some((o: any) => typeof o === 'object' && o && typeof o.isCorrect === 'boolean');
 
-  const normalizedOptions: { id: string; code: string; isCorrect: boolean }[] = rawArray.map((opt: any, idx: number) => {
+  const normalizedOptions: { id: string; code: string; isCorrect: boolean; feedback?: string }[] = rawArray.map((opt: any, idx: number) => {
     const labelRaw = typeof opt === 'object' && opt ? (opt.label ?? opt.id) : undefined;
     const id = (labelRaw ? String(labelRaw) : letters[idx] || String(idx + 1)).toLowerCase();
     const code = typeof opt === 'string' ? opt : (opt?.code ?? opt?.text ?? JSON.stringify(opt));
     const isCorrectFromOption = (typeof opt === 'object' && opt && typeof opt.isCorrect === 'boolean') ? opt.isCorrect : undefined;
-    return { id, code: String(code), isCorrect: isCorrectFromOption ?? false };
+    const feedback = typeof opt === 'object' && opt ? opt.feedback : undefined;
+    return { id, code: String(code), isCorrect: isCorrectFromOption ?? false, feedback };
   });
 
   const screens = [
@@ -183,7 +187,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
                 <p className="font-semibold">{
                   getFeedbackMessage(
                     selectedAnswer,
-                    normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect
+                    normalizedOptions.find(o => o.id === selectedAnswer)?.isCorrect,
+                    normalizedOptions.find(o => o.id === selectedAnswer)?.feedback
                   ).message
                 }</p>
               </div>
