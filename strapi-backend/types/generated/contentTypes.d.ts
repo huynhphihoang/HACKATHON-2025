@@ -430,6 +430,58 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiLevelLevel extends Struct.CollectionTypeSchema {
+  collectionName: 'levels';
+  info: {
+    displayName: 'level';
+    pluralName: 'levels';
+    singularName: 'level';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    level_title: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::level.level'> &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    types: Schema.Attribute.Relation<'oneToMany', 'api::type.type'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTypeType extends Struct.CollectionTypeSchema {
+  collectionName: 'types';
+  info: {
+    displayName: 'type';
+    pluralName: 'types';
+    singularName: 'type';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    collection_1s: Schema.Attribute.Relation<'oneToMany', 'api::video.video'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::type.type'> &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    type_title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
   collectionName: 'videos';
   info: {
@@ -974,6 +1026,8 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::level.level': ApiLevelLevel;
+      'api::type.type': ApiTypeType;
       'api::video.video': ApiVideoVideo;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

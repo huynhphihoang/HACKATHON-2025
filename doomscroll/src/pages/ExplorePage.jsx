@@ -1,52 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CategoryCard from '../components/category/CategoryCard';
 import LanguageDropdown from '../components/common/LanguageDropdown';
 import ScrollPage from './ScrollPage';
+import { getLevels } from '../services/api';
 
 const ExplorePage = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('cpp');
   const [showScrollPage, setShowScrollPage] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
 
-  const categories = [
-    {
-      level: 'Beginners',
-      topics: [
-        'Data Types (int, float, bool, string)',
-        'Operators (arithmetic, comparison, logical)',
-        'Conditionals (if, else, switch)',
-        'Loops (for, while, do-while)',
-        'Functions (definition, parameters, return)',
-        'Scope (local vs global variables)',
-        'Type Casting (implicit vs explicit)',
-        'Basic I/O (print, input, cin/cout, etc.)'
-      ]
-    },
-    {
-      level: 'Intermediate',
-      topics: [
-        'Arrays vs Linked Lists (advantages/disadvantages)',
-        'Stacks & Queues (LIFO vs FIFO concepts)',
-        'Hash Tables / Dictionaries / Maps',
-        'Strings & String Manipulation',
-        'Recursion (base case, call stack visualization)',
-        'File Handling (read/write files)',
-        'Exception Handling (try/catch/finally)',
-        'Time Complexity (Big-O basics: O(1), O(n), O(log n))',
-        'Memory Management (stack vs heap)'
-      ]
-    },
-    {
-      level: 'Advanced',
-      topics: [
-        'Abstract Data Types (sets, graphs, trees)',
-        'Binary Trees vs Binary Search Trees',
-        'Sorting Algorithms (bubble, quicksort, Mergesort)',
-        'Searching Algorithms (linear, binary, BFS, DFS)',
-        'Pointers & References (C/C++ focus)',
-        'Object-Oriented Concepts (inheritance, polymorphism, encapsulation, abstraction)'
-      ]
-    }
-  ];
+  // Replace hardcoded categories with API call
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const levels = await getLevels();
+        
+         // Transform backend data to match existing format
+         const transformedCategories = levels.map(level => ({
+           level: level.level_title.charAt(0).toUpperCase() + level.level_title.slice(1).toLowerCase(),
+           topics: level.types && level.types.length > 0
+             ? level.types.map(type => type.type_title)
+             : [] // Empty array for levels without populated types
+         }));
+        
+        setCategories(transformedCategories);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Show empty state if API fails
+        setCategories([]);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -59,9 +47,20 @@ const ExplorePage = () => {
     if (topic) {
       console.log(`Selected level: ${level}, topic: ${topic}, language: ${selectedLanguage}`);
 
-      // Check if it's "Loops" topic in Beginners level
-      if (level === 'Beginners' && topic.includes('Loops')) {
+      // Check if this level/topic has data by looking at the categories
+      const levelData = categories.find(cat => cat.level === level);
+      const hasData = levelData && levelData.topics.includes(topic);
+
+      if (hasData) {
+        // Navigate to ScrollPage only if data exists
+        console.log(`ExplorePage: Navigating to ScrollPage with level: ${level}, topic: ${topic}`);
         setShowScrollPage(true);
+        setSelectedLevel(level);
+        setSelectedType(topic);
+      } else {
+        // Show message for topics without data
+        console.log(`ExplorePage: No data found for ${level}/${topic}`);
+        alert(`${topic} content is not available yet. Please check back later!`);
       }
     } else {
       console.log(`Selected level: ${level} with language: ${selectedLanguage}`);
@@ -79,7 +78,7 @@ const ExplorePage = () => {
   };
 
   if (showScrollPage) {
-    return <ScrollPage onBack={handleBackToExplore} />;
+    return <ScrollPage onBack={handleBackToExplore} level={selectedLevel?.toLowerCase()} type={selectedType} />;
   }
 
   return (

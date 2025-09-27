@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getCollections, getAllCollections } from '../services/api';
 
 interface ScrollPageProps {
   onBack: () => void;
+  level?: string;
+  type?: string;
 }
 
-const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
+const ScrollPage: React.FC<ScrollPageProps> = ({ onBack, level, type }) => {
+  console.log(`ScrollPage: Received props - level: ${level}, type: ${type}`);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -31,10 +35,20 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${STRAPI_URL}/collection`);
-        if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
-        const json = await res.json();
-        const allCollections = json?.data || [];
+
+        let allCollections = [];
+
+        if (level && type) {
+          // Fetch collections for specific level and type
+          console.log(`ScrollPage: Fetching collections for level: ${level}, type: ${type}`);
+          allCollections = await getCollections(level, type);
+          console.log(`ScrollPage: Found ${allCollections.length} collections for ${level}/${type}`);
+        } else {
+          // Fallback to all collections if no specific level/type
+          console.log('ScrollPage: No level/type specified, fetching all collections');
+          allCollections = await getAllCollections();
+        }
+
         setCollections(allCollections);
       } catch (e: any) {
         setError(e?.message || 'Failed to load');
@@ -43,7 +57,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [level, type]);
 
   const getFeedbackMessage = (answerId: string, isCorrect: boolean | undefined, feedback?: string) => {
     if (answerId && feedback) {
@@ -69,8 +83,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
   const secondarySrc = withBaseUrl(currentCollection?.videoSecondary?.url);
   const quizQuestion = currentCollection?.quizQuestion;
   const quizOptionsRaw = currentCollection?.quizOptions || [];
-  const videoTitle = currentCollection?.videoTitle || 'For Loop';
-  const videoDescription = currentCollection?.videoDescription || 'forLoops by @CodeMaster_42 (Beginner)';
+  const videoTitle = currentCollection?.videoTitle || 'Learning Content';
+  const videoDescription = currentCollection?.videoDescription || `${level || 'Learning'} - ${type || 'Content'}`;
 
   const letters = ['a','b','c','d','e','f','g','h'];
   const rawArray = Array.isArray(quizOptionsRaw) ? quizOptionsRaw : [];
@@ -94,28 +108,28 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       screenType: 'visual',
       content: (
         <div className="h-full flex flex-col p-1 gap-1">
-                  {/* Top Video - For Loop Tutorial (60%) */}
-                  <div className="bg-black rounded-lg overflow-hidden flex-shrink-0" style={{ height: '60%' }}>
-                    <video
-                      ref={(el) => {
-                        topVideoRefs.current[collectionIdx] = el;
-                      }}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      muted={isMuted}
-                      loop
-                      controls={false}
-                      onLoadStart={() => console.log('Top video loading started')}
-                      onLoadedData={() => console.log('Top video loaded')}
-                      onError={(e) => console.error('Top video error:', e)}
-                    >
-                      <source src={withBaseUrl(collection?.videoPrimary?.url)} type="video/mp4" />
-                      <div className="text-white text-center p-4">
-                        <p>{collection?.videoTitle || 'Video'} Video</p>
-                        <p className="text-sm text-gray-400">Video not available</p>
-                      </div>
-                    </video>
-                  </div>
+          {/* Top Video - For Loop Tutorial (60%) */}
+          <div className="bg-black rounded-lg overflow-hidden flex-shrink-0" style={{ height: '60%' }}>
+            <video
+              ref={(el) => {
+                topVideoRefs.current[collectionIdx] = el;
+              }}
+              className="w-full h-full object-cover"
+              autoPlay
+              muted={isMuted}
+              loop
+              controls={false}
+              onLoadStart={() => console.log('Top video loading started')}
+              onLoadedData={() => console.log('Top video loaded')}
+              onError={(e) => console.error('Top video error:', e)}
+            >
+              <source src={withBaseUrl(collection?.videoPrimary?.url)} type="video/mp4" />
+              <div className="text-white text-center p-4">
+                <p>{collection?.videoTitle || 'Video'} Video</p>
+                <p className="text-sm text-gray-400">Video not available</p>
+              </div>
+            </video>
+          </div>
           
           {/* Bottom Video - Minecraft Gameplay (40%) */}
           <div className="bg-red-500 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ height: '40%' }}>
@@ -128,9 +142,15 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
               loop
               autoPlay
               preload="metadata"
-              onLoadStart={() => console.log('Bottom video loading started')}
-              onLoadedData={() => console.log('Bottom video loaded')}
-              onError={(e) => console.error('Bottom video error:', e)}
+              onLoadStart={() => console.log(`Bottom video ${collectionIdx} loading started`)}
+              onLoadedData={() => {
+                console.log(`Bottom video ${collectionIdx} loaded`);
+                // Only play if this is the current collection
+                if (collectionIdx === currentCollectionIndex) {
+                  bottomVideoRefs.current[collectionIdx]?.play().catch(console.error);
+                }
+              }}
+              onError={(e) => console.error(`Bottom video ${collectionIdx} error:`, e)}
             >
               <source src={withBaseUrl(collection?.videoSecondary?.url)} type="video/mp4" />
               <div className="text-white text-center p-4">
@@ -200,15 +220,15 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
 
             {showFeedback && selectedAnswer && (
               <div className={`mt-6 p-4 rounded-lg ${
-                (collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.isCorrect ? true : false)
+                (collection?.quizOptions?.find((o: any) => o.label?.toLowerCase() === selectedAnswer)?.isCorrect ? true : false)
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
                 <p className="font-semibold">{
                   getFeedbackMessage(
                     selectedAnswer,
-                    collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.isCorrect,
-                    collection?.quizOptions?.find((o: any) => o.label === selectedAnswer)?.feedback
+                    collection?.quizOptions?.find((o: any) => o.label?.toLowerCase() === selectedAnswer)?.isCorrect,
+                    collection?.quizOptions?.find((o: any) => o.label?.toLowerCase() === selectedAnswer)?.feedback
                   ).message
                 }</p>
               </div>
@@ -234,6 +254,22 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       }
     }
   }, [currentScreen, screens, currentCollectionIndex]);
+
+  // Ensure videos play when collection changes
+  useEffect(() => {
+    const playVideos = () => {
+      if (topVideoRefs.current[currentCollectionIndex]) {
+        topVideoRefs.current[currentCollectionIndex].play().catch(console.error);
+      }
+      if (bottomVideoRefs.current[currentCollectionIndex]) {
+        bottomVideoRefs.current[currentCollectionIndex].play().catch(console.error);
+      }
+    };
+
+    // Small delay to ensure video elements are ready
+    const timer = setTimeout(playVideos, 100);
+    return () => clearTimeout(timer);
+  }, [currentCollectionIndex]);
 
   const handlePausePlay = () => {
     const currentTopVideo = topVideoRefs.current[currentCollectionIndex];
@@ -550,7 +586,7 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
             {/* Bottom Text - Below Card */}
             <div className="mt-6 flex items-center justify-center space-x-4">
               <div className="text-white text-lg font-semibold">{videoTitle}</div>
-              <span className="text-white text-sm bg-green-600 px-3 py-1 rounded-full">Beginner</span>
+              <span className="text-white text-sm bg-green-600 px-3 py-1 rounded-full">{level || 'Learning'}</span>
               <span className="text-white text-sm">{videoDescription}</span>
             </div>
           </div>

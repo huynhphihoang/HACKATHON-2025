@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "levels",
+  "info": {
+    "singularName": "level",
+    "pluralName": "levels",
+    "displayName": "level"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "level_title": {
+      "type": "string"
+    },
+    "types": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::type.type"
+    }
+  }
+}
