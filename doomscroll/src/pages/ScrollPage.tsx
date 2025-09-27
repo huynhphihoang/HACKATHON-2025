@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getCollections, getAllCollections } from '../services/api';
 
 interface ScrollPageProps {
   onBack: () => void;
@@ -31,10 +32,8 @@ const ScrollPage: React.FC<ScrollPageProps> = ({ onBack }) => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${STRAPI_URL}/collection`);
-        if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
-        const json = await res.json();
-        const allCollections = json?.data || [];
+        // Replace hardcoded fetch with API call
+        const allCollections = await getAllCollections();
         setCollections(allCollections);
       } catch (e: any) {
         setError(e?.message || 'Failed to load');
